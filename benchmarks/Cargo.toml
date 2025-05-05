@@ -6,7 +6,10 @@ publish = false
 
 [dependencies]
 criterion = "0.3"
-curl = "0.4"
+curl = { features = [
+    "static-curl",
+    "cares",
+], git = "https://github.com/getsentry/curl-rust", rev = "8e21adf8016d6acb6745087360ec36fb345286da" }
 rayon = "1"
 rouille = "3"
 

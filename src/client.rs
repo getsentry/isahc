@@ -21,15 +21,14 @@ use futures_lite::{
 };
 use http::{
     header::{HeaderMap, HeaderName, HeaderValue},
-    Request,
-    Response,
+    Request, Response,
 };
 use once_cell::sync::Lazy;
 use std::{
     convert::TryFrom,
     fmt,
     future::Future,
-    io,
+    io, net,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -312,6 +311,24 @@ impl HttpClientBuilder {
         // requests in a multi handle so we do not expose it per-request to
         // avoid confusing behavior.
         self.client_config.dns_resolve = Some(map);
+        self
+    }
+
+    /// Manually specify the DNS servers to use for name resolution.  If empty,
+    /// will use OS defaults.
+    pub fn dns_servers(mut self, servers: &[net::IpAddr]) -> Self {
+        if servers.is_empty() {
+            return self;
+        }
+
+        let start_str = servers[0].to_string();
+        self.client_config.dns_servers =
+            Some(servers.iter().skip(1).fold(start_str, |mut s, addr| {
+                s.push(',');
+                s.push_str(&addr.to_string());
+                s
+            }));
+
         self
     }
 
@@ -1064,16 +1081,14 @@ impl HttpClient {
 
         easy.signal(false)?;
 
-        let request_config = request
-            .extensions()
-            .get::<RequestConfig>()
-            .unwrap();
+        let request_config = request.extensions().get::<RequestConfig>().unwrap();
 
         request_config.set_opt(&mut easy)?;
         self.inner.client_config.set_opt(&mut easy)?;
 
         // Check if we need to disable the Expect header.
-        let disable_expect_header = request_config.expect_continue
+        let disable_expect_header = request_config
+            .expect_continue
             .as_ref()
             .map(|x| x.is_disabled())
             .unwrap_or_default();

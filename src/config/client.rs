@@ -10,6 +10,7 @@ pub(crate) struct ClientConfig {
     pub(crate) close_connections: bool,
     pub(crate) dns_cache: Option<DnsCache>,
     pub(crate) dns_resolve: Option<ResolveMap>,
+    pub(crate) dns_servers: Option<String>,
 }
 
 impl SetOpt for ClientConfig {
@@ -24,6 +25,10 @@ impl SetOpt for ClientConfig {
 
         if let Some(map) = self.dns_resolve.as_ref() {
             map.set_opt(easy)?;
+        }
+
+        if let Some(dns_servers) = &self.dns_servers {
+            easy.dns_servers(dns_servers)?;
         }
 
         easy.forbid_reuse(self.close_connections)
