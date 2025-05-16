@@ -9,7 +9,7 @@ criterion = "0.3"
 curl = { features = [
     "static-curl",
     "cares",
-], git = "https://github.com/getsentry/curl-rust", rev = "8e21adf8016d6acb6745087360ec36fb345286da" }
+], git = "https://github.com/getsentry/curl-rust", rev = "47a97a58c3e7de6dbe229a9dd284f7804bdd82ec" }
 rayon = "1"
 rouille = "3"
 

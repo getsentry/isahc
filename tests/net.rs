@@ -1,4 +1,6 @@
-use isahc::{config::IpVersion, error::ErrorKind, prelude::*, Request};
+use ipnet::Ipv4Net;
+use iprange::IpRange;
+use isahc::{Request, config::IpVersion, error::ErrorKind, prelude::*};
 use std::{
     io::{self, Read, Write},
     net::{Ipv4Addr, Ipv6Addr, Shutdown, TcpListener, TcpStream, ToSocketAddrs},
@@ -8,6 +10,24 @@ use testserver::mock;
 
 #[macro_use]
 mod utils;
+
+#[test]
+fn test_ip_blacklist() {
+    let m = mock!();
+
+    let ipaddr = match m.addr() {
+        std::net::SocketAddr::V4(socket_addr_v4) => socket_addr_v4.ip().clone(),
+        std::net::SocketAddr::V6(_) => panic!(),
+    };
+    let mut blocked = IpRange::<Ipv4Net>::new();
+    blocked.add(Ipv4Net::new(ipaddr, 24).unwrap());
+    let client = isahc::HttpClient::builder()
+        .ip_blacklists(blocked, IpRange::new())
+        .build()
+        .unwrap();
+
+    assert!(client.get(m.url()).is_err());
+}
 
 // Check if the test host supports IPv6.
 fn is_ipv6_supported() -> bool {
