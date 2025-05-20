@@ -8,7 +8,6 @@ use ipnet::{Ipv4Net, Ipv6Net};
 use iprange::IpRange;
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
-    sync::OnceLock,
     time::Duration,
 };
 
@@ -28,10 +27,8 @@ pub(crate) struct IpBlacklist {
     pub(crate) ipv6: IpRange<Ipv6Net>,
 }
 
-pub(crate) static PRIVATE_RANGES: std::sync::OnceLock<IpBlacklist> = OnceLock::new();
-
 unsafe extern "C" fn handler(
-    _data: *mut std::ffi::c_void,
+    data: *mut std::ffi::c_void,
     _purpose: curl_sys::curlsocktype,
     address: *mut curl_sys::curl_sockaddr,
 ) -> curl_sys::curl_socket_t {
@@ -58,9 +55,11 @@ unsafe extern "C" fn handler(
         return curl_sys::CURL_SOCKET_BAD;
     };
 
+    let blocked_ranges: &IpBlacklist = &*(data as *const IpBlacklist);
+
     let blocked = match &ip {
-        IpAddr::V4(ipv4_addr) => PRIVATE_RANGES.wait().ipv4.contains(ipv4_addr),
-        IpAddr::V6(ipv6_addr) => PRIVATE_RANGES.wait().ipv6.contains(ipv6_addr),
+        IpAddr::V4(ipv4_addr) => blocked_ranges.ipv4.contains(ipv4_addr),
+        IpAddr::V6(ipv6_addr) => blocked_ranges.ipv6.contains(ipv6_addr),
     };
 
     if blocked {
@@ -102,10 +101,8 @@ impl SetOpt for ClientConfig {
         }
 
         if let Some(ip_blacklist) = &self.ip_blacklist {
-            PRIVATE_RANGES
-                .set(ip_blacklist.clone())
-                .expect("should only ever set once");
             easy.open_socket_function(handler)?;
+            easy.open_socket_data(ip_blacklist as *const IpBlacklist as *mut std::ffi::c_void)?;
         }
 
         easy.forbid_reuse(self.close_connections)
