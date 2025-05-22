@@ -38,8 +38,8 @@ crossbeam-utils = ">=0.7.0, <0.9.0"
 curl = { features = [
     "static-curl",
     "cares",
-], git = "https://github.com/getsentry/curl-rust", rev = "8e21adf8016d6acb6745087360ec36fb345286da" }
-curl-sys = { git = "https://github.com/getsentry/curl-rust", rev = "8e21adf8016d6acb6745087360ec36fb345286da" }
+], git = "https://github.com/getsentry/curl-rust", rev = "7b63d9d780bb9bd577abcbca37911adfd93ca7e9" }
+curl-sys = { git = "https://github.com/getsentry/curl-rust", rev = "7b63d9d780bb9bd577abcbca37911adfd93ca7e9" }
 event-listener = "2.3.3"
 futures-lite = "1.10.1"
 http = "0.2.1"
@@ -50,6 +50,10 @@ slab = "0.4"
 sluice = "0.5.4"
 url = "2.1"
 waker-fn = "1"
+libc = "0.2.42"
+socket2 = "0.5.0"
+iprange = "0.6.7"
+ipnet = "2.11.0"
 
 [dependencies.encoding_rs]
 version = "0.8"

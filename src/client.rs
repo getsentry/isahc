@@ -4,7 +4,7 @@ use crate::{
     agent::{self, AgentBuilder},
     body::{AsyncBody, Body},
     config::{
-        client::ClientConfig,
+        client::{ClientConfig, IpBlacklist},
         request::{RequestConfig, SetOpt, WithRequestConfig},
         *,
     },
@@ -20,9 +20,11 @@ use futures_lite::{
     io::AsyncRead,
 };
 use http::{
-    header::{HeaderMap, HeaderName, HeaderValue},
     Request, Response,
+    header::{HeaderMap, HeaderName, HeaderValue},
 };
+use ipnet::{Ipv4Net, Ipv6Net};
+use iprange::IpRange;
 use once_cell::sync::Lazy;
 use std::{
     convert::TryFrom,
@@ -328,6 +330,13 @@ impl HttpClientBuilder {
                 s.push_str(&addr.to_string());
                 s
             }));
+
+        self
+    }
+
+    /// Set the ipv4 and ipv6 blacklists for this client.
+    pub fn ip_blacklists(mut self, ipv4: IpRange<Ipv4Net>, ipv6: IpRange<Ipv6Net>) -> Self {
+        self.client_config.ip_blacklist = Some(IpBlacklist { ipv4, ipv6 });
 
         self
     }
@@ -1095,7 +1104,6 @@ impl HttpClient {
 
         // Set the HTTP method to use. Curl ties in behavior with the request
         // method, so we need to configure this carefully.
-        #[allow(indirect_structural_match)]
         match (request.method(), has_body) {
             // Normal GET request.
             (&http::Method::GET, false) => {
