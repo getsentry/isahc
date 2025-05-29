@@ -32,22 +32,18 @@ unsafe extern "C" fn handler(
     _purpose: curl_sys::curlsocktype,
     address: *mut curl_sys::curl_sockaddr,
 ) -> curl_sys::curl_socket_t {
-    (*((&(*address).addr) as *const libc::sockaddr as *const libc::sockaddr_in6)).sin6_addr;
     let ip = match (*address).family {
-        libc::AF_INET => IpAddr::V4(Ipv4Addr::from_bits(
-            (*((&(*address).addr) as *const libc::sockaddr as *const libc::sockaddr_in))
-                .sin_addr
-                .s_addr
-                .to_be(),
-        ))
-        .into(),
-        libc::AF_INET6 => IpAddr::V6(Ipv6Addr::from_bits(
-            (*(&((*((&(*address).addr) as *const libc::sockaddr as *const libc::sockaddr_in6))
-                .sin6_addr
-                .s6_addr) as *const u8 as *const u128))
-                .to_be(),
-        ))
-        .into(),
+        libc::AF_INET => {
+            let sa_in = *((&(*address).addr) as *const libc::sockaddr as *const libc::sockaddr_in);
+            IpAddr::V4(Ipv4Addr::from_bits(sa_in.sin_addr.s_addr.to_be())).into()
+        }
+        libc::AF_INET6 => {
+            let sa_in6 =
+                *((&(*address).addr) as *const libc::sockaddr as *const libc::sockaddr_in6);
+            let bits: u128 = u128::from_be_bytes(sa_in6.sin6_addr.s6_addr);
+
+            IpAddr::V6(Ipv6Addr::from_bits(bits)).into()
+        }
         _ => None,
     };
 
